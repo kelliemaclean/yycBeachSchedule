@@ -240,4 +240,4 @@ FILE_NAME = input('File Name:')
 
 schedule = main(num_teams = num_teams, num_weeks = num_weeks , num_courts = num_courts , bye = bye)
 
-schedule.to_csv('schedules/'+ FILE_NAME + '.csv', index=False)
+schedule.to_csv(f'schedules/{FILE_NAME}.csv', index=False)
