@@ -4,7 +4,10 @@ import itertools
 import pandas as pd
 import numpy as np
 
-def generate_schedule_without_bye(num_teams =int, num_weeks=int, num_courts=int):
+## need to have bye groups and rotation (create bye groups)
+## no teams play back to back. 
+
+def generate_schedule_without_bye(num_teams=int, num_weeks=int, num_courts=int):
     counts = []
     
     if num_teams < 2:
@@ -21,43 +24,61 @@ def generate_schedule_without_bye(num_teams =int, num_weeks=int, num_courts=int)
     # Create a list of team names (you can customize this)
     teams = [f'Team {i}' for i in range(1, num_teams + 1)]
     
-    # Create list to create dataframe
+    # Create list to create a dataframe
     Week = []
     Game = []
     Courts = []
     
+    # Initialize the previous week's matchups
+    prev_week_matches = []
+
     # Generate the schedule
     for week in schedule:
         random.shuffle(teams)
         team_play = []
-        
+        week_matches = []
+
         for slot in slots:
             Week.append(week)
             Game.append(slot)
             remaining_teams = teams.copy()
-            # Create a schedule dictionary to store matchups for each slot
-            courts = {f'courts {i}': [] for i in range(1, num_courts + 1)}
-            courts_cols = courts.keys()
             
-            # for each court add teams remaining
+            # Create a schedule dictionary to store matchups for each slot
+            courts = {f'court {i}': [] for i in range(1, num_courts + 1)}
+            
+            # for each court, add teams remaining
             for court in courts:
-
+                while True:
                     team1 = remaining_teams.pop()
                     team2 = remaining_teams.pop()
-                    team_play.append(team1)
-                    team_play.append(team2)
 
-                    if team1[-1] < team2[-1]:
-                        courts[court].append(f'{team1} vs. {team2}')
-                    else:
-                        courts[court].append(f'{team2} vs. {team1}')
+                    # Check if team1 vs. team2 was played last week
+                    if f'{team1} vs. {team2}' not in prev_week_matches and f'{team2} vs. {team1}' not in prev_week_matches:
+                        team_play.append(team1)
+                        team_play.append(team2)
+
+                        if team1[-1] < team2[-1]:
+                            courts[court].append(f'{team1} vs. {team2}')
+                            week_matches.append(f'{team1} vs. {team2}')
+                        else:
+                            courts[court].append(f'{team2} vs. {team1}')
+                            week_matches.append(f'{team1} vs. {team2}')
+                        break  # Exit the loop if a valid matchup is found
+
+                    # If the matchup was played last week, swap team1 and team2 and try again
+                    remaining_teams.insert(0, team2)
+                    remaining_teams.insert(0, team1)
 
             # Rotate the teams in a circular manner
             teams = [teams[0]] + [teams[-1]] + teams[1:-1]
-            
-            # Add court scheudle dictionary to Courts list
+
+            # Add court schedule dictionary to Courts list
             Courts.append(courts)
-            
+        
+        # Update the previous week's matchups
+        prev_week_matches = week_matches 
+        print(prev_week_matches)
+
     Courts = pd.DataFrame(Courts)
     schedule = pd.DataFrame({'Week': Week, 'Game': Game})
     schedule = pd.merge(schedule, Courts, left_index=True, right_index=True)
@@ -70,7 +91,7 @@ def generate_schedule_without_bye(num_teams =int, num_weeks=int, num_courts=int)
         count = (schedule == value).sum().sum()
         counts.append(count)
     
-    return schedule, list(courts_cols), max(counts), min(counts)
+    return schedule, list(court_columns), max(counts), min(counts)
 
 def generate_schedule_with_bye(num_teams =int, num_weeks=int, num_courts=int):
     
@@ -230,7 +251,7 @@ def main(num_teams = int, num_weeks = int, num_courts = int, bye = str):
         return schedule
     
     else:
-        Print('Bye must = True or False')
+        print('Bye must = True or False')
 
 num_teams = int(input('Number of Teams:'))
 num_weeks = int(input('Number fo Weeks:'))
